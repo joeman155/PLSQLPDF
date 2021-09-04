@@ -1,5 +1,5 @@
 
-CREATE OR REPLACE package body as_pdf3
+CREATE OR REPLACE package body jt_pdf
 is
 --
   type tp_pls_tab is table of pls_integer index by pls_integer;

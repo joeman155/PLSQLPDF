@@ -1,4 +1,4 @@
-CREATE OR REPLACE package as_pdf3
+CREATE OR REPLACE package jt_pdf
 is
 /**********************************************
 **
@@ -16,7 +16,7 @@ is
 **   Date: 15-04-2012
 **     only dbms_lob.freetemporary for temporary blobs
 **   Date: 11-04-2012
-**     Initial release of as_pdf3
+**     Initial release of jt_pdf
 **
 ******************************************************************************
 ******************************************************************************

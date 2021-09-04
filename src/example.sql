@@ -55,8 +55,8 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 */
 
   t_query varchar2(1000);
-  table1_h as_pdf3.tp_headers;
-  table2_h as_pdf3.tp_headers;
+  table1_h jt_pdf.tp_headers;
+  table2_h jt_pdf.tp_headers;
   header_font tp_font_spec;
   cell_font   tp_font_spec;
   header_cell_attributes tp_cell_attributes;
@@ -83,7 +83,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   
   procedure new_line IS
   BEGIN
-     as_pdf3.write (lvc_crlf);
+     jt_pdf.write (lvc_crlf);
   END new_line;
 
  
@@ -92,11 +92,11 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   begin
   
     /* Set the font to bold for heading*/
-    as_pdf3.set_font (p_family => lv_default_font_family, 
+    jt_pdf.set_font (p_family => lv_default_font_family, 
                               p_style  => 'b',
                               p_fontsize_pt => 14);
     
-    as_pdf3.write (p_txt => p_text, p_x => 0);
+    jt_pdf.write (p_txt => p_text, p_x => 0);
     -- new_line();
     
   end writeHeading;
@@ -105,8 +105,8 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   
   BEGIN
   
-    table1_h := as_pdf3.tp_headers('Division', 'Date', 'Invoice Number', 'Menu Item', 'Line Total', 'Taxed/Tax Free');
-    table2_h := as_pdf3.tp_headers('Division', 'Date', 'Invoice Number', 'Payment Method', 'Line Total');  
+    table1_h := jt_pdf.tp_headers('Division', 'Date', 'Invoice Number', 'Menu Item', 'Line Total', 'Taxed/Tax Free');
+    table2_h := jt_pdf.tp_headers('Division', 'Date', 'Invoice Number', 'Payment Method', 'Line Total');  
   
     header_font := tp_font_spec(family => lv_default_font_family, 
                                 fontstyle  => 'b', 
@@ -133,27 +133,27 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     lv_page_title := 'Cafe Account '||p_tender_number||' ' ||p_month;
   
     /* First line to initialize the package*/
-    as_pdf3.init;
-    as_pdf3.set_page_orientation('L');
+    jt_pdf.init;
+    jt_pdf.set_page_orientation('L');
     
 
     -- Set the font to bold for heading    
-    as_pdf3.set_font (p_family => lv_default_font_family, 
+    jt_pdf.set_font (p_family => lv_default_font_family, 
                       p_style  => 'b',
                       p_fontsize_pt => 16);
 
-    as_pdf3.write (lv_page_title);
+    jt_pdf.write (lv_page_title);
     new_line();
 
     -- Title for first table 
     writeHeading (lvc_table1_title);
      
-    as_pdf3.set_font (p_family => lv_default_font_family, 
+    jt_pdf.set_font (p_family => lv_default_font_family, 
                       p_style  => 'N',
                       p_fontsize_pt => 10);
                       
     -- First table
-    as_pdf3.query2table( q1, null, table1_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );
+    jt_pdf.query2table( q1, null, table1_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );
     
     new_line();
     
@@ -162,20 +162,20 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     -- Title for second table
     writeHeading (lvc_table2_title);
      
-    as_pdf3.set_font (p_family => lv_default_font_family, 
+    jt_pdf.set_font (p_family => lv_default_font_family, 
                       p_style  => 'N',
                       p_fontsize_pt => 10);
                       
     -- Second table
-    as_pdf3.query2table( q2, null, table2_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );    
+    jt_pdf.query2table( q2, null, table2_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );    
     
     new_line();
     
 
     -- You can save it to a BLOB, instead of saving to a DIRECTORY.
-    -- lb_pdf := as_pdf3.get_pdf();
+    -- lb_pdf := jt_pdf.get_pdf();
    
-    as_pdf3.save_pdf ('MY_PDF_DIR', 'emp_report.pdf');
+    jt_pdf.save_pdf ('MY_PDF_DIR', 'emp_report.pdf');
   END create_attachment;
 
 END SJG_SIMP_PDF;
