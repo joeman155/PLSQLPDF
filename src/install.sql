@@ -6,7 +6,8 @@ spool on
 @@types.sql
 @@jt_pdf.pls
 @@jt_pdf.plb
-@@example.sql
+@@sjg_simp_pdf.pls
+@@sjg_simp_pdf.plb
 
 spool off;
 

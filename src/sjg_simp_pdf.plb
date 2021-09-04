@@ -1,17 +1,3 @@
-
-create or replace PACKAGE SJG_SIMP_PDF AS 
-
-   
-  /* Create an attachment PDF with some tables. */
-  procedure create_attachment (p_file_name     varchar2,
-                               p_tender_number varchar2,
-                               p_month         varchar2);
-                               
-
-END SJG_SIMP_PDF;
-/
-
-
 create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
 -- *
@@ -177,7 +163,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     -- You can save it to a BLOB, instead of saving to a DIRECTORY.
     -- lb_pdf := jt_pdf.get_pdf();
    
-    jt_pdf.save_pdf ('MY_PDF_DIR', p_file_name');
+    jt_pdf.save_pdf ('MY_PDF_DIR', p_file_name);
   END create_attachment;
 
 END SJG_SIMP_PDF;

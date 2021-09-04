@@ -4,6 +4,15 @@
 #
 
 
+if [ $# -ne 2 ];
+then
+   echo "Usage $0 <SYS Password> <DB Service>"
+   exit;
+fi
+
+sys_pw=$1
+dbservice=$2
+
 echo 
 echo It is assumed you are logged on as user oracle on the DB server and you have
 echo set your environment using oraenv.
@@ -14,4 +23,4 @@ read a
 
 
 
-sqlplus / as sysdba @init_test
+sqlplus "sys/${sys_pw}@${dbservice} as sysdba" @init_test

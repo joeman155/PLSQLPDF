@@ -4,6 +4,9 @@ create or replace type tp_font_spec as object
     fontstyle varchar2(2),
     fontsize number
 );
+/
+
+show errors;
 
 
 
@@ -14,3 +17,6 @@ create or replace type tp_cell_attributes as object
     line_width number,
     padding    number
 );
+/
+
+show errors;
