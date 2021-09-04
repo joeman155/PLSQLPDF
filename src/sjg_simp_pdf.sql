@@ -3,7 +3,8 @@ create or replace PACKAGE SJG_SIMP_PDF AS
 
    
   /* Create an attachment PDF with some tables. */
-  procedure create_attachment (p_tender_number varchar2,
+  procedure create_attachment (p_file_name     varchar2,
+                               p_tender_number varchar2,
                                p_month         varchar2);
                                
 
@@ -36,8 +37,9 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
   
 
-  procedure create_attachment(p_tender_number varchar2,
-                               p_month         varchar2) AS
+  procedure create_attachment(p_file_name      varchar2,
+                              p_tender_number  varchar2,
+                              p_month          varchar2) AS
   lv_page_title    varchar2(100);
   lvc_table1_title varchar2(25) := 'Transactions';
   lvc_table2_title varchar2(25) := 'Payment Methods';
@@ -175,7 +177,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     -- You can save it to a BLOB, instead of saving to a DIRECTORY.
     -- lb_pdf := jt_pdf.get_pdf();
    
-    jt_pdf.save_pdf ('MY_PDF_DIR', 'emp_report.pdf');
+    jt_pdf.save_pdf ('MY_PDF_DIR', p_file_name');
   END create_attachment;
 
 END SJG_SIMP_PDF;
