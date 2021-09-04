@@ -1,3 +1,4 @@
+
 CREATE OR REPLACE package body as_pdf3
 is
 --
@@ -1046,7 +1047,7 @@ end' ) );
     end;
 --
     return add_object( to_char( sysdate, '"/CreationDate (D:"YYYYMMDDhh24miss")"' )
-                     || '/Creator (AS-PDF 0.3.0 by Anton Scheffer)'
+                     || '/Creator (JT-PDF 0.0.1 by Joseph Turner)'
                      || t_banner
                      || '/Title <FEFF' || utl_i18n.string_to_raw( g_info.title, 'AL16UTF16' ) || '>'
                      || '/Author <FEFF' || utl_i18n.string_to_raw( g_info.author, 'AL16UTF16' ) || '>'
@@ -3234,10 +3235,26 @@ dbms_output.put_line( t_font_ind || ' ' || g_fonts( t_font_ind ).fontname || ' '
     g_page_prcs( g_page_prcs.count ) := p_src;
   end;
 --
+  procedure set_cell_font (p_cell_font in tp_font_spec)
+  is
+  begin
+     if p_cell_font is not null then
+        set_font(p_family => p_cell_font.family,
+                 p_style  => p_cell_font.fontstyle,
+                 p_fontsize_pt => p_cell_font.fontsize);
+     elsif get( c_get_current_font ) is null then 
+        set_font( 'helvetica', 12 );
+     end if;
+  end;
+--
   procedure cursor2table
     ( p_c integer
     , p_widths tp_col_widths := null
     , p_headers tp_headers := null
+    , p_cell_font tp_font_spec  := null
+    , p_header_font tp_font_spec := null
+    , p_data_cell_attributes   tp_cell_attributes := null
+    , p_header_cell_attributes tp_cell_attributes := null
     )
   is
     t_col_cnt integer;
@@ -3268,18 +3285,37 @@ $END
     t_txt varchar2(32767);
     c_rf number := 0.2; -- raise factor of text above cell bottom 
 --
-    procedure show_header
+    procedure show_header (p_header_font in tp_font_spec)
     is
     begin
-      if p_headers is not null and p_headers.count > 0
-      then
+                    
+      if p_headers is not null and p_headers.count > 0  then
+        if p_header_font is not null then
+           set_font(p_family => p_header_font.family,
+                    p_style  => p_header_font.fontstyle,
+                    p_fontsize_pt => p_header_font.fontsize);       
+        end if;
+        
         t_x := t_start_x;
         for c in 1 .. t_col_cnt
         loop
-          rect( t_x, t_y, t_widths( c ), t_lineheight );
+          if p_header_cell_attributes is not null then
+          rect( p_x => t_x, 
+                p_y => t_y, 
+                p_width  => t_widths( c ), 
+                p_height => t_lineheight,
+                p_line_color => p_header_cell_attributes.line_color,
+                p_fill_color => p_header_cell_attributes.fill_color,
+                p_line_width => p_header_cell_attributes.line_width);
+          else
+          rect( p_x => t_x, 
+                p_y => t_y, 
+                p_width  => t_widths( c ), 
+                p_height => t_lineheight);
+          end if;
           if c <= p_headers.count
           then
-            put_txt( t_x + t_padding, t_y + c_rf * t_lineheight, p_headers( c ) );
+            put_txt( t_x + t_padding + p_header_cell_attributes.padding, t_y + c_rf * t_lineheight + p_header_cell_attributes.padding, p_headers( c ) );
           end if; 
           t_x := t_x + t_widths( c ); 
         end loop;
@@ -3305,12 +3341,7 @@ $END
     else
       t_widths := p_widths;
     end if;
---
-    if get( c_get_current_font ) is null
-    then 
-      set_font( 'helvetica', 12 );
-    end if;
---
+
     for c in 1 .. t_col_cnt
     loop
       case
@@ -3328,11 +3359,15 @@ $END
       end case;
     end loop;
 --
+    set_cell_font (p_cell_font);
+--
     t_start_x := get( c_get_margin_left );
-    t_lineheight := get( c_get_fontsize ) * 1.2;
+    t_lineheight := get( c_get_fontsize ) * 1.2 + (2 * p_header_cell_attributes.padding);
     t_y := coalesce( get( c_get_y ) - t_lineheight, get( c_get_page_height ) - get( c_get_margin_top ) ) - t_lineheight; 
 --
-    show_header;
+    show_header (p_header_font);
+--
+    set_cell_font (p_cell_font);
 --
     loop
       t_r := dbms_sql.fetch_rows( p_c );
@@ -3342,8 +3377,11 @@ $END
         then
           new_page;
           t_y := get( c_get_page_height ) - get( c_get_margin_top ) - t_lineheight; 
-          show_header;
+          show_header(p_header_font);
         end if;
+        
+        set_cell_font (p_cell_font);
+        
         t_x := t_start_x;
         for c in 1 .. t_col_cnt
         loop
@@ -3352,33 +3390,72 @@ $END
             then
               n_tab.delete;
               dbms_sql.column_value( p_c, c, n_tab );
-              rect( t_x, t_y, t_widths( c ), t_lineheight );
+              if p_data_cell_attributes is not null then
+                 rect( p_x => t_x, 
+                       p_y => t_y, 
+                       p_width  => t_widths( c ), 
+                       p_height => t_lineheight,
+                       p_line_color => p_data_cell_attributes.line_color,
+                       p_fill_color => p_data_cell_attributes.fill_color,
+                       p_line_width => p_data_cell_attributes.line_width);
+              else
+                 rect( p_x => t_x, 
+                       p_y => t_y, 
+                       p_width  => t_widths( c ), 
+                       p_height => t_lineheight);
+              end if;
               t_txt := to_char( n_tab( i + n_tab.first() ), t_num_format );
               if t_txt is not null
               then
-                put_txt( t_x + t_widths( c ) - t_padding - str_len( t_txt ), t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_widths( c ) - t_padding - p_data_cell_attributes.padding - str_len( t_txt ), t_y + c_rf * t_lineheight, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             when t_desc_tab( c ).col_type member of t_dates
             then
               d_tab.delete;
               dbms_sql.column_value( p_c, c, d_tab );
-              rect( t_x, t_y, t_widths( c ), t_lineheight );
+              if p_data_cell_attributes is not null then
+                  rect( p_x => t_x, 
+                        p_y => t_y, 
+                        p_width  => t_widths( c ), 
+                        p_height => t_lineheight,
+                        p_line_color => p_data_cell_attributes.line_color,
+                        p_fill_color => p_data_cell_attributes.fill_color,
+                        p_line_width => p_data_cell_attributes.line_width);
+               else
+                  rect( p_x => t_x, 
+                        p_y => t_y, 
+                        p_width  => t_widths( c ), 
+                        p_height => t_lineheight);
+               end if;
               t_txt := to_char( d_tab( i + d_tab.first() ), t_date_format );
               if t_txt is not null
               then
-                put_txt( t_x + t_padding, t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             when t_desc_tab( c ).col_type member of t_chars
             then
               v_tab.delete;
               dbms_sql.column_value( p_c, c, v_tab );
-              rect( t_x, t_y, t_widths( c ), t_lineheight );
+              if p_data_cell_attributes is not null then
+                  rect( p_x => t_x, 
+                        p_y => t_y, 
+                        p_width  => t_widths( c ), 
+                        p_height => t_lineheight,
+                        p_line_color => p_data_cell_attributes.line_color,
+                        p_fill_color => p_data_cell_attributes.fill_color,
+                        p_line_width => p_data_cell_attributes.line_width);
+               else
+                  rect( p_x => t_x, 
+                        p_y => t_y, 
+                        p_width  => t_widths( c ), 
+                        p_height => t_lineheight);
+               end if;
               t_txt := v_tab( i + v_tab.first() );
               if t_txt is not null
               then
-                put_txt( t_x + t_padding, t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             else
@@ -3396,6 +3473,10 @@ $END
     ( p_query varchar2
     , p_widths tp_col_widths := null
     , p_headers tp_headers := null
+    , p_cell_font tp_font_spec := null
+    , p_header_font tp_font_spec := null
+    , p_data_cell_attributes   tp_cell_attributes := null
+    , p_header_cell_attributes tp_cell_attributes := null
     )
   is
     t_cx integer;
@@ -3404,7 +3485,7 @@ $END
     t_cx := dbms_sql.open_cursor;
     dbms_sql.parse( t_cx, p_query, dbms_sql.native );
     t_dummy := dbms_sql.execute( t_cx );
-    cursor2table( t_cx, p_widths, p_headers ); 
+    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes ); 
     dbms_sql.close_cursor( t_cx );
   end;
 $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
@@ -3413,6 +3494,10 @@ $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
     ( p_rc sys_refcursor
     , p_widths tp_col_widths := null
     , p_headers tp_headers := null
+    , p_cell_font tp_font_spec := null
+    , p_header_font tp_font_spec := null
+    , p_data_cell_attributes   tp_cell_attributes := null
+    , p_header_cell_attributes tp_cell_attributes := null
     )
   is
     t_cx integer;
@@ -3420,7 +3505,7 @@ $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
   begin
     t_rc := p_rc;
     t_cx := dbms_sql.to_cursor_number( t_rc );
-    cursor2table( t_cx, p_widths, p_headers ); 
+    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes ); 
     dbms_sql.close_cursor( t_cx );
   end;
 $END
@@ -3441,4 +3526,3 @@ $END
   end;
 end;
 /
-
