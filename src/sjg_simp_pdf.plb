@@ -16,16 +16,16 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 -- * 
 -- * EXAMPLE USAGE
 -- * 
--- * call sjg_simp_pdf.create_attachment;
+-- * call sjg_simp_pdf.create_attachment 
 -- * 
 -- *  
 
 
   
 
-  procedure create_attachment(p_file_name      varchar2,
-                              p_tender_number  varchar2,
-                              p_month          varchar2) AS
+  procedure create_attachment(p_tender_number  varchar2,
+                              p_month          varchar2,
+                              p_file_name      varchar2 := null) AS
   lv_page_title    varchar2(100);
   lvc_table1_title varchar2(25) := 'Transactions';
   lvc_table2_title varchar2(25) := 'Payment Methods';
@@ -34,40 +34,90 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   lv_default_font_family varchar2(100) := 'helvetica';
   lb_pdf           blob;
 
-/*
-  table1 t_table_headings_type;
-  table2 t_table_headings_type;
-  
-  table1_col t_table_numbers_type;
-  table2_col t_table_numbers_type;
-*/
 
-  t_query varchar2(1000);
-  table1_h jt_pdf.tp_headers;
-  table2_h jt_pdf.tp_headers;
-  header_font tp_font_spec;
-  cell_font   tp_font_spec;
+  table1_h        jt_pdf.tp_headers;
+  table2_h        jt_pdf.tp_headers;
+  header_font     tp_font_spec;
+  cell_font       tp_font_spec;
+  cell_font_bold  tp_font_spec;
   header_cell_attributes tp_cell_attributes;
   data_cell_attributes   tp_cell_attributes;
+  data_cell_attributes3  tp_cell_attributes;
+  lv_cond_fmt1           varchar2(32767);
   
   q1 varchar2(32767) := q'[
                           select 'division' as division,
                                  'date'     as the_date,
                                  'invoice_number' as invoice_number,
                                  'menu_item'      as menu_item,
-                                 12345            as line_total,
+                                 to_number(9.5)     as line_total,
+                                 'Taxed'          as tax_flag
+                          from dual
+                          union
+                          select 'division' as division,
+                                 'date'     as the_date,
+                                 'invoice_number' as invoice_number,
+                                 'menu_item'      as menu_item,
+                                 to_number(3.6)     as line_total,
+                                 'Taxed'          as tax_flag
+                          from dual
+                          union
+                          select 'division' as division,
+                                 'date'     as the_date,
+                                 'invoice_number' as invoice_number,
+                                 'menu_item'      as menu_item,
+                                 to_number('')               as line_total,
+                                 'Taxed'          as tax_flag
+                          from dual
+                          union
+                          select 'division' as division,
+                                 'date'     as the_date,
+                                 'invoice_number' as invoice_number,
+                                 'menu_item'      as menu_item,
+                                 to_number(13.10)            as line_total,
                                  'Taxed'          as tax_flag
                           from dual
                           ]';
   q2 varchar2(32767):= q'[
-                          select 'division' as division,
-                                 'date'     as the_date,
-                                 'invoice_number' as invoice_number,
-                                 'payment_method' as payment_method,
-                                 12345            as line_total
+                          select to_char('division') as division,
+                                 to_char('date')     as the_date,
+                                 to_char('invoice_number') as invoice_number,
+                                 to_char('payment_method') as payment_method,
+                                 to_number(3.10)            as line_total
+                          from dual
+                          union
+                          select to_char('division') as division,
+                                 to_char('date')     as the_date,
+                                 to_char('invoice_number') as invoice_number,
+                                 to_char('payment_method') as payment_method,
+                                 to_number(10.00)            as line_total
+                          from dual
+                          union
+                          select to_char('division') as division,
+                                 to_char('date')     as the_date,
+                                 to_char('invoice_number') as invoice_number,
+                                 to_char('payment_method') as payment_method,
+                                 to_number(13.10)            as line_total
+                          from dual
+                          union
+                          select to_char('')     as division,
+                                 to_char('')     as the_date,
+                                 to_char('')     as invoice_number,
+                                 to_char('')     as payment_method,
+                                 to_number(null)     as line_total
+                          from dual
+                          union
+                          select to_char('')     as division,
+                                 to_char('')     as the_date,
+                                 to_char('')     as invoice_number,
+                                 to_char('Amount Owning') as payment_method,
+                                 to_number(10.00)  as line_total
                           from dual
                           ]';
+
+
    
+
   
   procedure new_line IS
   BEGIN
@@ -85,10 +135,8 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                               p_fontsize_pt => 14);
     
     jt_pdf.write (p_txt => p_text, p_x => 0);
-    -- new_line();
     
   end writeHeading;
-  
   
   
   BEGIN
@@ -103,6 +151,10 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                                 fontstyle   => 'N', 
                                 fontsize => 10);
     
+    cell_font_bold :=   tp_font_spec(family  => lv_default_font_family, 
+                                     fontstyle   => 'b', 
+                                     fontsize => 10);
+    
     
     header_cell_attributes := tp_cell_attributes(line_color => null,
                                                  fill_color => 'ACACAC',
@@ -114,13 +166,19 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                                                line_width => 0.0,
                                                padding    => 6);
                                                  
+
+    data_cell_attributes3 := tp_cell_attributes(line_color => null,
+                                                fill_color => 'FFFFFF',
+                                                line_width => 0.0,
+                                                padding    => 6);
+                                                 
                                                 
 
 
   
     lv_page_title := 'Cafe Account '||p_tender_number||' ' ||p_month;
   
-    /* First line to initialize the package*/
+    -- First line to initialize the package
     jt_pdf.init;
     jt_pdf.set_page_orientation('L');
     
@@ -140,9 +198,30 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                       p_style  => 'N',
                       p_fontsize_pt => 10);
                       
+
+    lv_cond_fmt1 := q'[
+                       begin
+                       sjg_simp_pdf.cell_rule( p_x_cell => :x,
+                                               p_y_cell => :y,
+                                               p_rows   => :r,
+                                               o_cell_attributes => :ca,
+                                               o_cell_font       => :cf
+                                              );
+                       end;
+                      ]';
+
+
     -- First table
-    jt_pdf.query2table( q1, null, table1_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );
-    
+    jt_pdf.query2table( p_query     => q1, 
+                        p_widths    => null, 
+                        p_headers   => table1_h, 
+                        p_cell_font => cell_font, 
+                        p_header_font => header_font, 
+                        p_data_cell_attributes => data_cell_attributes, 
+                        p_header_cell_attributes => header_cell_attributes, 
+                        p_conditional_fmt_fn => lv_cond_fmt1);
+
+
     new_line();
     
   
@@ -151,11 +230,19 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     writeHeading (lvc_table2_title);
      
     jt_pdf.set_font (p_family => lv_default_font_family, 
-                      p_style  => 'N',
-                      p_fontsize_pt => 10);
+                     p_style  => 'N',
+                     p_fontsize_pt => 10);
                       
     -- Second table
-    jt_pdf.query2table( q2, null, table2_h, cell_font, header_font, data_cell_attributes, header_cell_attributes );    
+    jt_pdf.query2table( p_query     => q2, 
+                        p_widths    => null, 
+                        p_headers   => table2_h, 
+                        p_cell_font => cell_font, 
+                        p_header_font => header_font, 
+                        p_data_cell_attributes => data_cell_attributes, 
+                        p_header_cell_attributes => header_cell_attributes, 
+                        p_conditional_fmt_fn => lv_cond_fmt1);
+
     
     new_line();
     
@@ -166,9 +253,43 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     jt_pdf.save_pdf ('MY_PDF_DIR', p_file_name);
   END create_attachment;
 
+
+
+
+
+  procedure cell_rule (p_x_cell in number,
+                       p_y_cell in number,
+                       p_rows   in number,
+                       o_cell_attributes out tp_cell_attributes,
+                       o_cell_font       out tp_font_spec) is
+  l_cell_attributes tp_cell_attributes := null;
+  l_cell_font       tp_font_spec       := null;
+  begin
+
+
+    if p_x_cell = 5 and p_y_cell = p_rows then
+       l_cell_font := tp_font_spec(family  => 'helvetica',
+                                   fontstyle   => 'n',
+                                   fontsize => 18);
+
+
+       l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
+                                               fill_color => 'ACACAC',
+                                               line_width => 1,
+                                               padding    => 6);
+     end if;
+   
+
+  
+     o_cell_attributes := l_cell_attributes;
+     o_cell_font       := l_cell_font;
+  end cell_rule;
+
 END SJG_SIMP_PDF;
 /
 
 
 show errors;
 
+
+quit;

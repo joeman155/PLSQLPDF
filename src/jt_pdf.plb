@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE package body jt_pdf
 is
 --
@@ -3235,18 +3234,6 @@ dbms_output.put_line( t_font_ind || ' ' || g_fonts( t_font_ind ).fontname || ' '
     g_page_prcs( g_page_prcs.count ) := p_src;
   end;
 --
-  procedure set_cell_font (p_cell_font in tp_font_spec)
-  is
-  begin
-     if p_cell_font is not null then
-        set_font(p_family => p_cell_font.family,
-                 p_style  => p_cell_font.fontstyle,
-                 p_fontsize_pt => p_cell_font.fontsize);
-     elsif get( c_get_current_font ) is null then 
-        set_font( 'helvetica', 12 );
-     end if;
-  end;
---
   procedure cursor2table
     ( p_c integer
     , p_widths tp_col_widths := null
@@ -3255,6 +3242,7 @@ dbms_output.put_line( t_font_ind || ' ' || g_fonts( t_font_ind ).fontname || ' '
     , p_header_font tp_font_spec := null
     , p_data_cell_attributes   tp_cell_attributes := null
     , p_header_cell_attributes tp_cell_attributes := null
+    , p_conditional_fmt_fn varchar2 := null
     )
   is
     t_col_cnt integer;
@@ -3284,6 +3272,72 @@ $END
     t_date_format varchar2(100) := 'dd.mm.yyyy';
     t_txt varchar2(32767);
     c_rf number := 0.2; -- raise factor of text above cell bottom 
+    lca tp_cell_attributes := null;
+    lf  tp_font_spec       := null;
+--
+    procedure conditional_fmt (p_conditional_fmt_fn in varchar2,
+                               p_xcell              in number,
+                               p_ycell              in number,
+                               p_rcount             in number,
+                               p_cell_attribute     out tp_cell_attributes,
+                               p_cell_font          out tp_font_spec)
+    is
+    lca tp_cell_attributes := null;
+    lf  tp_font_spec       := null;
+    begin
+      if p_conditional_fmt_fn is null then
+        p_cell_attribute := lca;
+        p_cell_font      := lf;
+        return;
+      end if;
+
+
+      execute immediate p_conditional_fmt_fn using IN p_xcell, IN p_ycell, IN p_rcount, 
+                                                   OUT lca, OUT lf;
+
+      p_cell_attribute := lca;
+      p_cell_font      := lf;
+
+    end;
+--
+  procedure set_cell_font (p_conditional_fmt_fn in varchar2,
+                           p_xcell in number,
+                           p_ycell in number,
+                           p_total_rows in number,
+                           p_cell_font in tp_font_spec)
+  is
+    lf  tp_font_spec       := null;
+    lca tp_cell_attributes := null;
+  begin
+     lf  := null;
+
+    conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
+                     p_xcell              => p_xcell + 1,
+                     p_ycell              => p_ycell,
+                     p_rcount             => p_total_rows,
+                     p_cell_attribute     => lca,
+                     p_cell_font          => lf);
+
+/*
+     sjg_simp_pdf.cell_rule (p_x_cell => p_xcell,
+                             p_y_cell => p_ycell,
+                             p_rows   => p_total_rows,
+                             o_cell_attributes => lca,
+                             o_cell_font       => lf);
+*/
+
+     if lf is not null then
+        set_font(p_family => lf.family,
+                 p_style  => lf.fontstyle,
+                 p_fontsize_pt => lf.fontsize);
+     elsif p_cell_font is not null then
+        set_font(p_family => p_cell_font.family,
+                 p_style  => p_cell_font.fontstyle,
+                 p_fontsize_pt => p_cell_font.fontsize);
+     elsif get( c_get_current_font ) is null then 
+        set_font( 'helvetica', 12 );
+     end if;
+  end;
 --
     procedure show_header (p_header_font in tp_font_spec)
     is
@@ -3359,7 +3413,7 @@ $END
       end case;
     end loop;
 --
-    set_cell_font (p_cell_font);
+    set_cell_font (null, null, null, null, p_cell_font);
 --
     t_start_x := get( c_get_margin_left );
     t_lineheight := get( c_get_fontsize ) * 1.2 + (2 * p_header_cell_attributes.padding);
@@ -3367,7 +3421,7 @@ $END
 --
     show_header (p_header_font);
 --
-    set_cell_font (p_cell_font);
+    -- set_cell_font (p_cell_font);
 --
     loop
       t_r := dbms_sql.fetch_rows( p_c );
@@ -3380,7 +3434,7 @@ $END
           show_header(p_header_font);
         end if;
         
-        set_cell_font (p_cell_font);
+        -- set_cell_font (p_cell_font);
         
         t_x := t_start_x;
         for c in 1 .. t_col_cnt
@@ -3390,7 +3444,34 @@ $END
             then
               n_tab.delete;
               dbms_sql.column_value( p_c, c, n_tab );
-              if p_data_cell_attributes is not null then
+  
+              lca := null;
+      
+              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
+
+              conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
+                               p_xcell              => c,
+                               p_ycell              => i + 1,
+                               p_rcount             => t_r,
+                               p_cell_attribute     => lca,
+                               p_cell_font          => lf);
+/*
+              sjg_simp_pdf.cell_rule (p_x_cell => c,
+                                      p_y_cell => i+1,
+                                      p_rows   => t_r,
+                                      o_cell_attributes => lca,
+                                      o_cell_font       => lf);
+*/
+
+              if lca is not null then
+                 rect( p_x => t_x,
+                       p_y => t_y,
+                       p_width  => t_widths( c ),
+                       p_height => t_lineheight,
+                       p_line_color => lca.line_color,
+                       p_fill_color => lca.fill_color,
+                       p_line_width => lca.line_width);
+              elsif p_data_cell_attributes is not null then
                  rect( p_x => t_x, 
                        p_y => t_y, 
                        p_width  => t_widths( c ), 
@@ -3414,7 +3495,36 @@ $END
             then
               d_tab.delete;
               dbms_sql.column_value( p_c, c, d_tab );
-              if p_data_cell_attributes is not null then
+
+
+              lca := null;
+
+              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
+
+              conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
+                               p_xcell              => c,
+                               p_ycell              => i + 1,
+                               p_rcount             => t_r,
+                               p_cell_attribute     => lca,
+                               p_cell_font          => lf);
+
+/*
+              sjg_simp_pdf.cell_rule (p_x_cell => c,
+                                      p_y_cell => i+1,
+                                      p_rows   => t_r,
+                                      o_cell_attributes => lca,
+                                      o_cell_font       => lf);
+*/
+
+              if lca is not null then
+                 rect( p_x => t_x,
+                       p_y => t_y,
+                       p_width  => t_widths( c ),
+                       p_height => t_lineheight,
+                       p_line_color => lca.line_color,
+                       p_fill_color => lca.fill_color,
+                       p_line_width => lca.line_width);
+              elsif p_data_cell_attributes is not null then
                   rect( p_x => t_x, 
                         p_y => t_y, 
                         p_width  => t_widths( c ), 
@@ -3438,7 +3548,37 @@ $END
             then
               v_tab.delete;
               dbms_sql.column_value( p_c, c, v_tab );
-              if p_data_cell_attributes is not null then
+
+
+              lca := null;
+
+              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
+
+              conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
+                               p_xcell              => c,
+                               p_ycell              => i + 1,
+                               p_rcount             => t_r,
+                               p_cell_attribute     => lca,
+                               p_cell_font          => lf);
+
+/*
+              sjg_simp_pdf.cell_rule (p_x_cell => c,
+                                      p_y_cell => i+1,
+                                      p_rows   => t_r,
+                                      o_cell_attributes => lca,
+                                      o_cell_font       => lf);
+*/
+
+
+              if lca is not null then
+                 rect( p_x => t_x,
+                       p_y => t_y,
+                       p_width  => t_widths( c ),
+                       p_height => t_lineheight,
+                       p_line_color => lca.line_color,
+                       p_fill_color => lca.fill_color,
+                       p_line_width => lca.line_width);
+              elsif p_data_cell_attributes is not null then
                   rect( p_x => t_x, 
                         p_y => t_y, 
                         p_width  => t_widths( c ), 
@@ -3477,6 +3617,7 @@ $END
     , p_header_font tp_font_spec := null
     , p_data_cell_attributes   tp_cell_attributes := null
     , p_header_cell_attributes tp_cell_attributes := null
+    , p_conditional_fmt_fn varchar2 := null
     )
   is
     t_cx integer;
@@ -3485,7 +3626,7 @@ $END
     t_cx := dbms_sql.open_cursor;
     dbms_sql.parse( t_cx, p_query, dbms_sql.native );
     t_dummy := dbms_sql.execute( t_cx );
-    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes ); 
+    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes, p_conditional_fmt_fn ); 
     dbms_sql.close_cursor( t_cx );
   end;
 $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
@@ -3498,6 +3639,7 @@ $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
     , p_header_font tp_font_spec := null
     , p_data_cell_attributes   tp_cell_attributes := null
     , p_header_cell_attributes tp_cell_attributes := null
+    , p_conditional_fmt_fn varchar2 := null
     )
   is
     t_cx integer;
@@ -3505,7 +3647,7 @@ $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
   begin
     t_rc := p_rc;
     t_cx := dbms_sql.to_cursor_number( t_rc );
-    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes ); 
+    cursor2table( t_cx, p_widths, p_headers, p_cell_font, p_header_font, p_data_cell_attributes, p_header_cell_attributes, p_conditional_fmt_fn ); 
     dbms_sql.close_cursor( t_cx );
   end;
 $END

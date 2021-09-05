@@ -287,7 +287,8 @@ THE SOFTWARE.
     , p_cell_font tp_font_spec := null
     , p_header_font tp_font_spec := null 
     , p_data_cell_attributes   tp_cell_attributes := null
-    , p_header_cell_attributes tp_cell_attributes := null  
+    , p_header_cell_attributes tp_cell_attributes := null
+    , p_conditional_fmt_fn varchar2 := null
     );
 --
 $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
@@ -299,6 +300,7 @@ $IF not DBMS_DB_VERSION.VER_LE_10 $THEN
     , p_header_font tp_font_spec := null
     , p_data_cell_attributes   tp_cell_attributes := null
     , p_header_cell_attributes tp_cell_attributes := null
+    , p_conditional_fmt_fn varchar2 := null
     );
 --
 $END
