@@ -16,7 +16,10 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 -- * 
 -- * EXAMPLE USAGE
 -- * 
--- * call sjg_simp_pdf.create_attachment 
+-- * begin
+-- *    sjg_simp_pdf.create_attachment (p_tender_number => '123',
+-- *                                    p_month         => 'MAR-21',
+-- *                                    p_file_name     => 'output.pdf');
 -- * 
 -- *  
 
@@ -167,7 +170,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
     
     
     header_cell_attributes := tp_cell_attributes(line_color => null,
-                                                 fill_color => 'ACACAC',
+                                                 fill_color => 'D9D9D9',
                                                  line_width => 0,
                                                  padding    => 6);
     
@@ -233,6 +236,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
 
     -- First table
+    -- lv_cond_fmt1 := null;  -- Uncomment this to remove conditional formatting
     jt_pdf.query2table( p_query     => q1, 
                         p_widths    => null, 
                         p_headers   => table1_h, 
@@ -255,6 +259,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                      p_fontsize_pt => 10);
                       
     -- Second table
+    -- lv_cond_fmt2 := null;  -- Uncomment this to remove conditional formatting
     jt_pdf.query2table( p_query     => q2, 
                         p_widths    => null, 
                         p_headers   => table2_h, 
@@ -294,7 +299,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
 
        l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
-                                               fill_color => 'ACACAC',
+                                               fill_color => 'D9D9D9',
                                                line_width => 1,
                                                padding    => 6);
      end if;
@@ -318,14 +323,15 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   begin
 
 
-    if p_x_cell = 5 and (p_y_cell = p_rows or p_y_cell = p_rows - 2) then
+    if (p_x_cell = 5 and (p_y_cell = p_rows or p_y_cell = p_rows - 2)) or
+       (p_x_cell = 4 and p_y_cell = p_rows) then
        l_cell_font := tp_font_spec(family  => 'helvetica',
                                    fontstyle   => 'b',
                                    fontsize => 10);
 
 
        l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
-                                               fill_color => 'ACACAC',
+                                               fill_color => 'D9D9D9',
                                                line_width => 1,
                                                padding    => 6);
      end if;
