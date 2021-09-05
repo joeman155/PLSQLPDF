@@ -3300,26 +3300,15 @@ $END
 
     end;
 --
-  procedure set_cell_font (p_conditional_fmt_fn in varchar2,
-                           p_xcell in number,
+  procedure set_cell_font (p_xcell in number,
                            p_ycell in number,
                            p_total_rows in number,
-                           p_cell_font in tp_font_spec)
+                           p_cell_font in tp_font_spec,
+                           p_f_override  in tp_font_spec)
   is
-    lf  tp_font_spec       := null;
-    lca tp_cell_attributes := null;
   begin
-     lf  := null;
 
-    conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
-                     p_xcell              => p_xcell,
-                     p_ycell              => p_ycell + 1,
-                     p_rcount             => p_total_rows,
-                     p_cell_attribute     => lca,
-                     p_cell_font          => lf);
-
-
-     if lf is not null then
+     if p_f_override is not null then
         set_font(p_family => lf.family,
                  p_style  => lf.fontstyle,
                  p_fontsize_pt => lf.fontsize);
@@ -3406,7 +3395,13 @@ $END
       end case;
     end loop;
 --
-    set_cell_font (null, null, null, null, p_cell_font);
+
+    set_cell_font (p_xcell       => null,
+                   p_ycell       => null,
+                   p_total_rows  => null,
+                   p_cell_font   => p_cell_font,
+                   p_f_override  => null);
+
 --
     t_start_x := get( c_get_margin_left );
     t_lineheight := get( c_get_fontsize ) * 1.2 + (2 * p_header_cell_attributes.padding);
@@ -3436,15 +3431,21 @@ $END
               dbms_sql.column_value( p_c, c, n_tab );
   
               lca := null;
+              lf  := null;
       
-              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
-
               conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
                                p_xcell              => c,
                                p_ycell              => i + 1,
                                p_rcount             => t_r,
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
+
+
+              set_cell_font (p_xcell       => c, 
+                             p_ycell       => i, 
+                             p_total_rows  => t_r, 
+                             p_cell_font   => p_cell_font,
+                             p_f_override  => lf);
 
               if lca is not null then
                  rect( p_x => t_x,
@@ -3481,8 +3482,7 @@ $END
 
 
               lca := null;
-
-              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
+              lf  := null;
 
               conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
                                p_xcell              => c,
@@ -3490,6 +3490,12 @@ $END
                                p_rcount             => t_r,
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
+
+              set_cell_font (p_xcell       => c,
+                             p_ycell       => i,
+                             p_total_rows  => t_r,
+                             p_cell_font   => p_cell_font,
+                             p_f_override  => null);
 
 
               if lca is not null then
@@ -3527,8 +3533,7 @@ $END
 
 
               lca := null;
-
-              set_cell_font (p_conditional_fmt_fn, c, i, t_r, p_cell_font);
+              lf  := null;
 
               conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
                                p_xcell              => c,
@@ -3536,6 +3541,12 @@ $END
                                p_rcount             => t_r,
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
+
+              set_cell_font (p_xcell       => c,
+                             p_ycell       => i,
+                             p_total_rows  => t_r,
+                             p_cell_font   => p_cell_font,
+                             p_f_override  => lf);
 
 
               if lca is not null then
