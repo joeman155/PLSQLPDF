@@ -3312,8 +3312,8 @@ $END
      lf  := null;
 
     conditional_fmt (p_conditional_fmt_fn => p_conditional_fmt_fn,
-                     p_xcell              => p_xcell + 1,
-                     p_ycell              => p_ycell,
+                     p_xcell              => p_xcell,
+                     p_ycell              => p_ycell + 1,
                      p_rcount             => p_total_rows,
                      p_cell_attribute     => lca,
                      p_cell_font          => lf);

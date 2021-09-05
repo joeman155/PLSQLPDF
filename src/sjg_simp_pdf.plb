@@ -44,13 +44,14 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   data_cell_attributes   tp_cell_attributes;
   data_cell_attributes3  tp_cell_attributes;
   lv_cond_fmt1           varchar2(32767);
+  lv_cond_fmt2           varchar2(32767);
   
   q1 varchar2(32767) := q'[
                           select 'division' as division,
                                  'date'     as the_date,
                                  'invoice_number' as invoice_number,
                                  'menu_item'      as menu_item,
-                                 to_number(9.5)     as line_total,
+                                 to_char('$' || to_char(9.5, '99,999,99.99'))     as line_total,
                                  'Taxed'          as tax_flag
                           from dual
                           union
@@ -58,7 +59,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                                  'date'     as the_date,
                                  'invoice_number' as invoice_number,
                                  'menu_item'      as menu_item,
-                                 to_number(3.6)     as line_total,
+                                 to_char('$' || to_char(3.6, '99,999,99.99'))     as line_total,
                                  'Taxed'          as tax_flag
                           from dual
                           union
@@ -66,53 +67,62 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                                  'date'     as the_date,
                                  'invoice_number' as invoice_number,
                                  'menu_item'      as menu_item,
-                                 to_number('')               as line_total,
+                                 to_char('')               as line_total,
                                  'Taxed'          as tax_flag
                           from dual
                           union
-                          select 'division' as division,
-                                 'date'     as the_date,
-                                 'invoice_number' as invoice_number,
-                                 'menu_item'      as menu_item,
-                                 to_number(13.10)            as line_total,
-                                 'Taxed'          as tax_flag
+                          select '' as division,
+                                 ''     as the_date,
+                                 '' as invoice_number,
+                                 ''      as menu_item,
+                                 to_char('$' || to_char(13.10, '99,999,99.99'))            as line_total,
+                                 ''          as tax_flag
                           from dual
                           ]';
   q2 varchar2(32767):= q'[
-                          select to_char('division') as division,
+                          with q as (
+                          select 1 as id,
+                                 to_char('division') as division,
                                  to_char('date')     as the_date,
                                  to_char('invoice_number') as invoice_number,
                                  to_char('payment_method') as payment_method,
-                                 to_number(3.10)            as line_total
+                                 to_char('$' || to_char(3.10, '99,999,99.99'))            as line_total
                           from dual
                           union
-                          select to_char('division') as division,
+                          select 2 as id,
+                                 to_char('division') as division,
                                  to_char('date')     as the_date,
                                  to_char('invoice_number') as invoice_number,
                                  to_char('payment_method') as payment_method,
-                                 to_number(10.00)            as line_total
+                                 to_char('$' || to_char(10.00, '99,999,99.99'))            as line_total
                           from dual
                           union
-                          select to_char('division') as division,
+                          select 3 as id,
+                                 to_char('division') as division,
                                  to_char('date')     as the_date,
                                  to_char('invoice_number') as invoice_number,
                                  to_char('payment_method') as payment_method,
-                                 to_number(13.10)            as line_total
+                                 to_char('$' || to_char(13.10, '99,999,99.99'))            as line_total
                           from dual
                           union
-                          select to_char('')     as division,
+                          select 4 as id,
+                                 to_char('')     as division,
                                  to_char('')     as the_date,
                                  to_char('')     as invoice_number,
                                  to_char('')     as payment_method,
-                                 to_number(null)     as line_total
+                                 to_char(null)     as line_total
                           from dual
                           union
-                          select to_char('')     as division,
+                          select 5 as id,
+                                 to_char('')     as division,
                                  to_char('')     as the_date,
                                  to_char('')     as invoice_number,
                                  to_char('Amount Owning') as payment_method,
-                                 to_number(10.00)  as line_total
+                                 to_char('$' || to_char(10, '99,999,99.99'))  as line_total
                           from dual
+                          order by 1)
+                          select division, the_date, invoice_number, payment_method, line_total, '' as blank
+                          from q
                           ]';
 
 
@@ -201,12 +211,23 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
     lv_cond_fmt1 := q'[
                        begin
-                       sjg_simp_pdf.cell_rule( p_x_cell => :x,
-                                               p_y_cell => :y,
-                                               p_rows   => :r,
-                                               o_cell_attributes => :ca,
-                                               o_cell_font       => :cf
-                                              );
+                       sjg_simp_pdf.cell_rule1( p_x_cell => :x,
+                                                p_y_cell => :y,
+                                                p_rows   => :r,
+                                                o_cell_attributes => :ca,
+                                                o_cell_font       => :cf
+                                               );
+                       end;
+                      ]';
+
+    lv_cond_fmt2 := q'[
+                       begin
+                       sjg_simp_pdf.cell_rule2( p_x_cell => :x,
+                                                p_y_cell => :y,
+                                                p_rows   => :r,
+                                                o_cell_attributes => :ca,
+                                                o_cell_font       => :cf
+                                               );
                        end;
                       ]';
 
@@ -241,7 +262,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                         p_header_font => header_font, 
                         p_data_cell_attributes => data_cell_attributes, 
                         p_header_cell_attributes => header_cell_attributes, 
-                        p_conditional_fmt_fn => lv_cond_fmt1);
+                        p_conditional_fmt_fn => lv_cond_fmt2);
 
     
     new_line();
@@ -256,12 +277,11 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
 
 
-
-  procedure cell_rule (p_x_cell in number,
-                       p_y_cell in number,
-                       p_rows   in number,
-                       o_cell_attributes out tp_cell_attributes,
-                       o_cell_font       out tp_font_spec) is
+  procedure cell_rule1 (p_x_cell in number,
+                        p_y_cell in number,
+                        p_rows   in number,
+                        o_cell_attributes out tp_cell_attributes,
+                        o_cell_font       out tp_font_spec) is
   l_cell_attributes tp_cell_attributes := null;
   l_cell_font       tp_font_spec       := null;
   begin
@@ -269,8 +289,39 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
 
     if p_x_cell = 5 and p_y_cell = p_rows then
        l_cell_font := tp_font_spec(family  => 'helvetica',
-                                   fontstyle   => 'n',
-                                   fontsize => 18);
+                                   fontstyle   => 'b',
+                                   fontsize => 10);
+
+
+       l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
+                                               fill_color => 'ACACAC',
+                                               line_width => 1,
+                                               padding    => 6);
+     end if;
+
+
+
+     o_cell_attributes := l_cell_attributes;
+     o_cell_font       := l_cell_font;
+  end cell_rule1;
+
+
+
+
+  procedure cell_rule2 (p_x_cell in number,
+                        p_y_cell in number,
+                        p_rows   in number,
+                        o_cell_attributes out tp_cell_attributes,
+                        o_cell_font       out tp_font_spec) is
+  l_cell_attributes tp_cell_attributes := null;
+  l_cell_font       tp_font_spec       := null;
+  begin
+
+
+    if p_x_cell = 5 and (p_y_cell = p_rows or p_y_cell = p_rows - 2) then
+       l_cell_font := tp_font_spec(family  => 'helvetica',
+                                   fontstyle   => 'b',
+                                   fontsize => 10);
 
 
        l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
@@ -283,7 +334,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
   
      o_cell_attributes := l_cell_attributes;
      o_cell_font       := l_cell_font;
-  end cell_rule;
+  end cell_rule2;
 
 END SJG_SIMP_PDF;
 /

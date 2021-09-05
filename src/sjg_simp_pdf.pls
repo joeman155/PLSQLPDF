@@ -9,11 +9,17 @@ create or replace PACKAGE SJG_SIMP_PDF AS
 
   /* Rule to determine cell attributes based on position */
   /* i.e. Conditional formatting                         */
-  procedure cell_rule (p_x_cell in number,
-                       p_y_cell in number,
-                       p_rows   in number,
-                       o_cell_attributes out tp_cell_attributes,
-                       o_cell_font       out tp_font_spec);
+  procedure cell_rule1 (p_x_cell in number,
+                        p_y_cell in number,
+                        p_rows   in number,
+                        o_cell_attributes out tp_cell_attributes,
+                        o_cell_font       out tp_font_spec);
+
+  procedure cell_rule2 (p_x_cell in number,
+                        p_y_cell in number,
+                        p_rows   in number,
+                        o_cell_attributes out tp_cell_attributes,
+                        o_cell_font       out tp_font_spec);
 
 END SJG_SIMP_PDF;
 /
