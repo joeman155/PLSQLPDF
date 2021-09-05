@@ -3471,7 +3471,7 @@ $END
               t_txt := to_char( n_tab( i + n_tab.first() ), t_num_format );
               if t_txt is not null
               then
-                put_txt( t_x + t_widths( c ) - t_padding - p_data_cell_attributes.padding - str_len( t_txt ), t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_widths( c ) - t_padding - p_data_cell_attributes.padding - str_len( t_txt ), t_y + c_rf * t_lineheight + p_data_cell_attributes.padding, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             when t_desc_tab( c ).col_type member of t_dates
@@ -3517,7 +3517,7 @@ $END
               t_txt := to_char( d_tab( i + d_tab.first() ), t_date_format );
               if t_txt is not null
               then
-                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight + p_data_cell_attributes.padding, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             when t_desc_tab( c ).col_type member of t_chars
@@ -3563,7 +3563,7 @@ $END
               t_txt := v_tab( i + v_tab.first() );
               if t_txt is not null
               then
-                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight, t_txt );
+                put_txt( t_x + t_padding + p_data_cell_attributes.padding , t_y + c_rf * t_lineheight + p_data_cell_attributes.padding, t_txt );
               end if; 
               t_x := t_x + t_widths( c ); 
             else

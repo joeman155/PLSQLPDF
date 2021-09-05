@@ -330,7 +330,7 @@ create or replace PACKAGE BODY SJG_SIMP_PDF AS
                                    fontsize => 10);
 
 
-       l_cell_attributes := tp_cell_attributes(line_color => 'FFFFFF',
+       l_cell_attributes := tp_cell_attributes(line_color => null,
                                                fill_color => 'D9D9D9',
                                                line_width => 1,
                                                padding    => 6);
