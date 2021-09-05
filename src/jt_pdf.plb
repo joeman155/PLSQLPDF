@@ -3318,13 +3318,6 @@ $END
                      p_cell_attribute     => lca,
                      p_cell_font          => lf);
 
-/*
-     sjg_simp_pdf.cell_rule (p_x_cell => p_xcell,
-                             p_y_cell => p_ycell,
-                             p_rows   => p_total_rows,
-                             o_cell_attributes => lca,
-                             o_cell_font       => lf);
-*/
 
      if lf is not null then
         set_font(p_family => lf.family,
@@ -3421,8 +3414,6 @@ $END
 --
     show_header (p_header_font);
 --
-    -- set_cell_font (p_cell_font);
---
     loop
       t_r := dbms_sql.fetch_rows( p_c );
       for i in 0 .. t_r - 1
@@ -3434,7 +3425,6 @@ $END
           show_header(p_header_font);
         end if;
         
-        -- set_cell_font (p_cell_font);
         
         t_x := t_start_x;
         for c in 1 .. t_col_cnt
@@ -3455,13 +3445,6 @@ $END
                                p_rcount             => t_r,
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
-/*
-              sjg_simp_pdf.cell_rule (p_x_cell => c,
-                                      p_y_cell => i+1,
-                                      p_rows   => t_r,
-                                      o_cell_attributes => lca,
-                                      o_cell_font       => lf);
-*/
 
               if lca is not null then
                  rect( p_x => t_x,
@@ -3508,13 +3491,6 @@ $END
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
 
-/*
-              sjg_simp_pdf.cell_rule (p_x_cell => c,
-                                      p_y_cell => i+1,
-                                      p_rows   => t_r,
-                                      o_cell_attributes => lca,
-                                      o_cell_font       => lf);
-*/
 
               if lca is not null then
                  rect( p_x => t_x,
@@ -3560,14 +3536,6 @@ $END
                                p_rcount             => t_r,
                                p_cell_attribute     => lca,
                                p_cell_font          => lf);
-
-/*
-              sjg_simp_pdf.cell_rule (p_x_cell => c,
-                                      p_y_cell => i+1,
-                                      p_rows   => t_r,
-                                      o_cell_attributes => lca,
-                                      o_cell_font       => lf);
-*/
 
 
               if lca is not null then
